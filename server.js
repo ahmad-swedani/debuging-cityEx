@@ -43,9 +43,8 @@ function locatiomFun(req, res) {
   const city = req.query.city;
   // const locationData = require('./data/ location.json');
   // const locaData = new Location(city, locationData);
-  let q =`SELECT * FROM LOCATIONS WHERE search_query =$1;`
-  let safevalues=[city];
-  clint.query(q,safevalues)
+  let q =`SELECT * FROM LOCATIONS WHERE search_query ='${city}';`
+  clint.query(q)
     .then(dbdata=>{
     if(dbdata.rows.length > 0){
             console.log('from database');

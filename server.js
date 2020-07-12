@@ -49,7 +49,7 @@ function locatiomFun(req, res) {
     if(dbdata.rows.length > 0){
             console.log('from database');
 
-      res.status(200).send(dbdata.rows[0]);
+      res.status(200).json(dbdata.rows);
     }else{
       console.log('from APIs');
 
@@ -62,10 +62,13 @@ function locatiomFun(req, res) {
           // console.log(geoData.body);
           const locationData = new Location(city, geoData.body);
           // console.log(locationData);
-          let q = `INSERT INTO locations(search_query,formatted_query,latitude,longitude) VALUES ($1, $2, $3, $4);`
+          let q1 = `INSERT INTO locations(search_query,formatted_query,latitude,longitude) VALUES ($1, $2, $3, $4);`
           let safevalues =[locationData.search_query,locationData.formatted_query,locationData.latitude,locationData.longitude];
-          clint.query(q,safevalues)
-          res.status(200).json(locationData);
+          clint.query(q1,safevalues)
+          .then(dbdata=>{
+
+            res.status(200).json(locationData);
+          })
         });
       // console.log('after superagent');
     }

@@ -88,6 +88,17 @@ function Location(city, locationData) {
   ahmad.push(this);
 }
 
+app.get('/locationdata',(req,res)=>{
+  let q=`SELECT * FROM locations;`;
+  clint.query(q)
+  .then(results=>{
+    res.status(200).json(results.rows);
+  })
+  .catch (error => errorHandler(error));
+})
+
+
+
 app.get('/weather', (req, res) => {
   // const weatherData = require('./data/weather.json');
   // const nWeather = weatherData.data;

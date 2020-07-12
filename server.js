@@ -14,8 +14,14 @@ const cors = require('cors');
 /* superagent */
 const superagent = require('superagent');
 
+const pg = require('pg');
+
+
 
 /////////////////////////////////////
+
+const clint = new pg.Client(process.env.DBU_RL);
+
 
 /*for get the port number if it not there it will take(3196) */
 const PORT = process.env.PORT || 3000;
@@ -28,24 +34,51 @@ app.use(cors());
 app.get('/', (req, res) => {
   res.status(200).send('it is work berfectlly')
 });
+
+
 /* http://localhost:3642/location?data=Lunnwood  */
-app.get('/location', (req, res) => {
+app.get('/location', locatiomFun)  
+
+function locatiomFun(req, res) {
   const city = req.query.city;
   // const locationData = require('./data/ location.json');
   // const locaData = new Location(city, locationData);
-  let key = process.env.LOCATIONIQ_KEY;
-  let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-  superagent.get(url)
+  let q =`SELECT * FROM LOCATIONS WHERE search_query =$1;`
+  let safevalues=[city];
+  clint.query(q,safevalues)
+    .then(dbdata=>{
+    if(dbdata.rows.length > 0){
+            console.log('from database');
 
-    .then(geoData => {
-      console.log('inside superagent');
-      // console.log(geoData.body);
-      const locationData = new Location(city, geoData.body);
-      // console.log(locationData);
-      res.status(200).json(locationData);
-    });
-  console.log('after superagent');
-});
+      res.status(200).send(dbdata.rows[0]);
+    }else{
+      console.log('from APIs');
+
+
+      let key = process.env.LOCATIONIQ_KEY;
+      let url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+      superagent.get(url)
+        .then(geoData => {
+          // console.log('inside superagent');
+          // console.log(geoData.body);
+          const locationData = new Location(city, geoData.body);
+          // console.log(locationData);
+          let q = `INSERT INTO locations(search_query,formatted_query,latitude,longitude) VALUES ($1, $2, $3, $4);`
+          let safevalues =[locationData.search_query,locationData.formatted_query,locationData.latitude,locationData.longitude];
+          clint.query(q,safevalues)
+          res.status(200).json(locationData);
+        });
+      // console.log('after superagent');
+    }
+
+  
+
+})
+
+
+}
+
+
 var ahmad=[];
 function Location(city, locationData) {
   this.search_query = city;
@@ -60,7 +93,7 @@ app.get('/weather', (req, res) => {
   // const nWeather = weatherData.data;
 
   let key = process.env.WEATHER_KEY;
-  let url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${ahmad[0].latitude}&lon=${ahmad[0].longitude}&key=${key}`;
+  let url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${req.query.latitude}&lon=${req.query.longitude}&key=${key}`;
 
   superagent.get(url)
     .then(weatherData => {
@@ -76,7 +109,7 @@ app.get('/weather', (req, res) => {
           notArrResult.push(notResult);
 
         }else{
-          console.log(idx)
+          // console.log(idx)
         }
         // console.log(locationData);
       });
@@ -105,7 +138,7 @@ function Weather(weatherData) {
 app.get('/trails', (req, res) => {
 
   let key = process.env.TRAILS_KEY;
-  let url = `http://www.hikingproject.com/data/get-trails?lat=${ahmad[0].latitude}&lon=${ahmad[0].longitude}&maxDistance=10&key=${key}`;
+  let url = `http://www.hikingproject.com/data/get-trails?lat=${req.query.latitude}&lon=${req.query.longitude}&maxDistance=10&key=${key}`;
 
   superagent.get(url)
     .then(trailsData => {
@@ -146,6 +179,11 @@ app.get((error, req, res) => {
 
 
 ////////////////////////////////////////
+clint.connect()
+  .then(()=>{
+  
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);
 });
+
+})
